@@ -47,10 +47,10 @@ def createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=20, pointsInSP=10,
             spLabel += 1
             checkLoop = 0
         checkLoop +=1
-        if checkLoop > superPointNum*5:
+        if checkLoop > superPointNum*3:
             print('Error: Enter Valid Input Parameters')
-            return pntCloudFull, spLabel
-    return pntCloudFull, spLabel
+            return pntCloudFull
+    return pntCloudFull
 
 def getLabeledFormat(pntCloud):
     # Add Super Point Label List to standard input format
@@ -86,6 +86,7 @@ def labelNumPointsInRad(centerPnt, coverSphereRad, originPntCloud, labelNum, num
     # OUTPUT: list of points within radius (n2<=N)  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn2,yn2,zn2,[l1,..lk])]
     pntCloud = copy.deepcopy(originPntCloud)
     numPointsInSP = 0
+    random.shuffle(pntCloud)
     for pnt in pntCloud:
         dist = math.sqrt((pnt[0]-centerPnt[0])**2 + (pnt[1]-centerPnt[1])**2 + (pnt[2]-centerPnt[2])**2)
         if numPointsInSP < numLabel:
@@ -117,18 +118,18 @@ def displaySP(pntCloud,curAxis):
     col = random.sample(range(1, 100), 3)
     curAxis.scatter(pntX, pntY, pntZ, color=[float(col[0])/100.0, float(col[1])/100.0, float(col[2])/100.0], marker='o')
 
-def displayAllSP(superPntList):
+def displayAllSP(superPntList,titleName):
     # Visualize Results
     fig = plt.figure()  # create figure
     ax = fig.add_subplot(111, projection='3d')  # initialize 3D axis
-    m1 = max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])
+    m1 = max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])+1
     for i in range(m1):  # for each SP label
         pntList = [pnt for pnt in superPntList if i in pnt[3]]
         displaySP(pntList, ax)
     ax.set_xlabel('X Label')
     ax.set_ylabel('Y Label')
     ax.set_zlabel('Z Label')
-    plt.waitforbuttonpress()
+    ax.set_title(titleName)
 
 #--- Example Run ---
 def createRandomCloud(n = 10000):
@@ -144,14 +145,37 @@ def createRandomCloud(n = 10000):
     return pntCloud
 
 def runExample():
-    # Run example SP division
-    pntCloud = createRandomCloud(10000)
-    superPntList, numSP = createRandomSphereCoverSet(pntCloud, coverSphereRad=30)
-    #superPntList, numSP = createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=50,pointsInSP=100,coverSphereRad=30)
-    print('total points:' + str(len(superPntList)))
-    print('total super points:' + str(numSP))
-    displayAllSP(superPntList)
+    # Run example RSCS Superpoint creation
+    # Defining output by coverage percentage
+    pntCloud = createRandomCloud(1000)
+    csRad = 30
+    superPntList, numSP = createRandomSphereCoverSet(pntCloud, coverSphereRad=csRad)
+    print('You set ' + str(95) + ' Point Coverage, while defining the radius as ' + str(csRad))
+    print('-----')
+    print('original points: '+str(len(pntCloud)))
+    print('labeled points: ' + str(len([pnt for pnt in superPntList if len(pnt[3]) > 0])))
+    print('super points found:' + str(max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])+1))
+    displayAllSP(superPntList, 'Original RSCS')
+    print('-----')
+
+def runExampleFixed():
+    # Run example RSCS Superpoint creation
+    # Using a fixed output definition number of SP and Points in each SP
+    pntCloud = createRandomCloud(1000)
+    numSP = 20
+    spSize = 25
+    csRad = 30
+    superPntList  = createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=numSP,pointsInSP=spSize,coverSphereRad=csRad)
+    print('You set '+str(numSP)+' SuperPoints with '+str(spSize)+' in each SP, while defining the radius as '+str(csRad))
+    print('-----')
+    print('original points: '+str(len(pntCloud)))
+    print('labeled points: ' + str(len([pnt for pnt in superPntList if len(pnt[3]) > 0])))
+    print('super points found:' + str(max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])+1))
+    displayAllSP(superPntList, 'Fixed Size RSCS')
+    print('-----')
 
 if __name__=='__main__':
     print('Start')
     runExample()
+    runExampleFixed()
+    plt.show()
