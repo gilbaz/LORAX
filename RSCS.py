@@ -9,6 +9,7 @@
 import numpy as np
 import random
 import math
+import copy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -16,6 +17,7 @@ from mpl_toolkits.mplot3d import Axes3D
 def createRandomSphereCoverSet(pntCloud,coverageLim = 0.95,coverSphereRad = 1):
     # Main RSCS function - Runs Random Sphere Cover Set (RSCS) Algorithm
     # INPUT: pntCloud is a list of point tuples Nx3 [(x1,y1,z1),(x2,y2,z2),...(xn,yn,zn)]
+    # coverageLim is the percent of all points covered, coverSphereRad is the radius of the cover sphere
     # OUTPUT: superPointCloud is a list of point tuples with a list of labels included,
     # output size -> nx4 (n<=N) with list of k super-point labels
     # output example ->  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn,yn,zn,[l1,..lk])]
@@ -25,6 +27,29 @@ def createRandomSphereCoverSet(pntCloud,coverageLim = 0.95,coverSphereRad = 1):
         centerPnt = chooseRandNonCoveredPnt(pntCloudFull)
         pntCloudFull = labelPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel)
         spLabel +=1
+    return pntCloudFull, spLabel
+
+def createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=20, pointsInSP=10, coverSphereRad=1):
+    # Main RSCS function - Runs Random Sphere Cover Set (RSCS) Algorithm - Augmented for other extra use cases
+    # INPUT: pntCloud is a list of point tuples Nx3 [(x1,y1,z1),(x2,y2,z2),...(xn,yn,zn)]
+    # superPointNum is the number of SP, pointsInSP is the number of points in each SP,
+    # coverSphereRad is the radius of the CoverSphere
+    # OUTPUT: superPointCloud is a list of point tuples with a list of labels included,
+    # output size -> nx4 (n<=N) with list of k super-point labels
+    # output example ->  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn,yn,zn,[l1,..lk])]
+    pntCloudFull = getLabeledFormat(pntCloud)
+    spLabel = 0
+    checkLoop = 0
+    while spLabel < superPointNum:
+        centerPnt = chooseRandNonCoveredPnt(pntCloudFull)
+        pntCloudFull, hasChanged = labelNumPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel, pointsInSP)
+        if hasChanged:
+            spLabel += 1
+            checkLoop = 0
+        checkLoop +=1
+        if checkLoop > superPointNum*5:
+            print('Error: Enter Valid Input Parameters')
+            return pntCloudFull, spLabel
     return pntCloudFull, spLabel
 
 def getLabeledFormat(pntCloud):
@@ -54,6 +79,24 @@ def labelPointsInRad(centerPnt, coverSphereRad, pntCloud, labelNum):
         if dist <= coverSphereRad:
             pnt[3].append(labelNum)
     return pntCloud
+
+def labelNumPointsInRad(centerPnt, coverSphereRad, originPntCloud, labelNum, numLabel):
+    # Label Points in radius as uniform Super Point
+    # INPUT: centerPnt (x,y,z), coverSphereRad is scalar, pntCloud is a list of point tuples Nx4, labelNum - scalar (int) Superpoint label
+    # OUTPUT: list of points within radius (n2<=N)  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn2,yn2,zn2,[l1,..lk])]
+    pntCloud = copy.deepcopy(originPntCloud)
+    numPointsInSP = 0
+    for pnt in pntCloud:
+        dist = math.sqrt((pnt[0]-centerPnt[0])**2 + (pnt[1]-centerPnt[1])**2 + (pnt[2]-centerPnt[2])**2)
+        if numPointsInSP < numLabel:
+            if dist <= coverSphereRad:
+                pnt[3].append(labelNum)
+                numPointsInSP +=1
+    hasChanged = True
+    if numPointsInSP<numLabel:
+        print('Error: Raise Radius - Not enough points ('+str(numPointsInSP)+') to meet numLabel requirement of '+str(numLabel))
+        return originPntCloud, False
+    return pntCloud, hasChanged
 
 def getCoveragePercent(pntCloud):
     # Get percent of points covered
@@ -102,8 +145,9 @@ def createRandomCloud(n = 10000):
 
 def runExample():
     # Run example SP division
-    pntCloud = createRandomCloud()
+    pntCloud = createRandomCloud(10000)
     superPntList, numSP = createRandomSphereCoverSet(pntCloud, coverSphereRad=30)
+    #superPntList, numSP = createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=50,pointsInSP=100,coverSphereRad=30)
     print('total points:' + str(len(superPntList)))
     print('total super points:' + str(numSP))
     displayAllSP(superPntList)
