@@ -81,7 +81,7 @@ def chooseRandMinCoveredPnt(pntCloud,prevCenterPntList):
     newCoverPoint = []
     #Choose a random point with a minimum coverage
     while not newCoverPoint:
-        nonCoveredList = [pnt for pnt in pntCloud if len(pnt[3])==minCov and pnt not in prevCenterPntList]
+        nonCoveredList = [pnt for pnt in pntCloud if len(pnt[3])==minCov and pnt[0:3] not in prevCenterPntList]
         if len(nonCoveredList)>0:
             newCoverPoint = random.choice(nonCoveredList)
         else:
@@ -180,10 +180,10 @@ def runExample():
 def runExampleFixed():
     # Run example RSCS Superpoint creation
     # Using a fixed output definition number of SP and Points in each SP
-    pntCloud = createRandomCloud(1000)
-    numSP = 30
-    spSize = 15
-    csRad = 20
+    pntCloud = createRandomCloud(4000)
+    numSP = 50
+    spSize = 60
+    csRad = 25
     superPntList  = createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=numSP,pointsInSP=spSize,coverSphereRad=csRad)
     print('You set '+str(numSP)+' SuperPoints with '+str(spSize)+' in each SP, while defining the radius as '+str(csRad))
     print('-----')
