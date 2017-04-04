@@ -38,10 +38,12 @@ def createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=20, pointsInSP=10,
     # output size -> nx4 (n<=N) with list of k super-point labels
     # output example ->  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn,yn,zn,[l1,..lk])]
     pntCloudFull = getLabeledFormat(pntCloud)
+    prevCenterPntList = []
     spLabel = 0
     checkLoop = 0
     while spLabel < superPointNum:
-        centerPnt = chooseRandNonCoveredPnt(pntCloudFull)
+        centerPnt = chooseRandMinCoveredPnt(pntCloudFull,prevCenterPntList)
+        prevCenterPntList.append(centerPnt) #to not select the same point twice
         pntCloudFull, hasChanged = labelNumPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel, pointsInSP)
         if hasChanged:
             spLabel += 1
@@ -70,6 +72,23 @@ def chooseRandNonCoveredPnt(pntCloud):
     newCoverPoint = random.choice(nonCoveredList)
     return newCoverPoint
 
+def chooseRandMinCoveredPnt(pntCloud,prevCenterPntList):
+    # Choose a random minimally-covered point (with an minimal sized label list)
+    # Useful when partial coverage assumption isn't valid
+    # INPUT: pntCloud [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn,yn,zn,[l1,..lk])]
+    # OUTPUT: point (x,y,z,[])
+    minCov = 0
+    newCoverPoint = []
+    #Choose a random point with a minimum coverage
+    while not newCoverPoint:
+        nonCoveredList = [pnt for pnt in pntCloud if len(pnt[3])==minCov and pnt not in prevCenterPntList]
+        if len(nonCoveredList)>0:
+            newCoverPoint = random.choice(nonCoveredList)
+        else:
+            minCov +=1
+
+    return newCoverPoint
+
 def labelPointsInRad(centerPnt, coverSphereRad, pntCloud, labelNum):
     # Label Points in radius as uniform Super Point
     # INPUT: centerPnt (x,y,z), coverSphereRad is scalar, pntCloud is a list of point tuples Nx4, labelNum - scalar (int) Superpoint label
@@ -94,7 +113,7 @@ def labelNumPointsInRad(centerPnt, coverSphereRad, originPntCloud, labelNum, num
                 pnt[3].append(labelNum)
                 numPointsInSP +=1
     hasChanged = True
-    if numPointsInSP<numLabel:
+    if numPointsInSP < numLabel:
         print('Error: Raise Radius - Not enough points ('+str(numPointsInSP)+') to meet numLabel requirement of '+str(numLabel))
         return originPntCloud, False
     return pntCloud, hasChanged
@@ -162,16 +181,21 @@ def runExampleFixed():
     # Run example RSCS Superpoint creation
     # Using a fixed output definition number of SP and Points in each SP
     pntCloud = createRandomCloud(1000)
-    numSP = 20
-    spSize = 25
-    csRad = 30
+    numSP = 30
+    spSize = 15
+    csRad = 20
     superPntList  = createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=numSP,pointsInSP=spSize,coverSphereRad=csRad)
     print('You set '+str(numSP)+' SuperPoints with '+str(spSize)+' in each SP, while defining the radius as '+str(csRad))
     print('-----')
     print('original points: '+str(len(pntCloud)))
-    print('labeled points: ' + str(len([pnt for pnt in superPntList if len(pnt[3]) > 0])))
-    print('super points found:' + str(max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])+1))
-    displayAllSP(superPntList, 'Fixed Size RSCS')
+    labeledPntNum = len([pnt for pnt in superPntList if len(pnt[3]) > 0])
+    print('labeled points: ' + str(labeledPntNum))
+    if labeledPntNum>0:
+        print('super points found:' + str(max([max(pnt[3]) for pnt in superPntList if len(pnt[3]) > 0])+1))
+        displayAllSP(superPntList, 'Fixed Size RSCS')
+        print('~Successful fixed-RSCS application~')
+    else:
+        print('~Failed Attempt - Change the input parameters to recieve your requested results. This is code not magic.~')
     print('-----')
 
 if __name__=='__main__':
