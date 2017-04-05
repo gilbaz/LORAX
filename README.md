@@ -3,6 +3,7 @@ CVPR Oral Presentation Paper - "3D Point Cloud Registration for Localization usi
 
 
 Authors: Gil Elbaz, Tamar Avraham, Prof. Anath Fischer
+
 Technion - Israel Institute of Technology
 
 
