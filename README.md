@@ -1,10 +1,10 @@
 # LORAX
 CVPR Oral Presentation Paper - "3D Point Cloud Registration for Localization using a Deep Neural Network Auto-Encoder" 
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-*Authors: Gil Elbaz, Tamar Avraham, Prof. Anath Fischer
-*Technion - Israel Institute of Technology
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Authors: Gil Elbaz, Tamar Avraham, Prof. Anath Fischer
+Technion - Israel Institute of Technology
+
 
 *An RSCS implementation is included.
 In addition a fixed-RSCS algorithm is also implemented. 
