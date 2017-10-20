@@ -13,3 +13,5 @@ It is an augmentation of the original algorithm that allows for better parametri
 Using this you can define exactly how many Super-points should be created, how many points in each Super-point.
 
 *The basis code for the Super-point Auto-encoder Feature generator will be included.
+
+*Requires Python  3.5 or higher
