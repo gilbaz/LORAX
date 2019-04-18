@@ -12,6 +12,7 @@ import math
 import copy
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial import KDTree
 
 #--- RSCS Functions ---
 def createRandomSphereCoverSet(pntCloud,coverageLim = 0.95,coverSphereRad = 1):
@@ -23,9 +24,10 @@ def createRandomSphereCoverSet(pntCloud,coverageLim = 0.95,coverSphereRad = 1):
     # output example ->  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn,yn,zn,[l1,..lk])]
     pntCloudFull = getLabeledFormat(pntCloud)
     spLabel = 0
+    tree = KDTree(pntCloud)
     while getCoveragePercent(pntCloudFull) < coverageLim:
         centerPnt = chooseRandNonCoveredPnt(pntCloudFull)
-        pntCloudFull = labelPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel)
+        pntCloudFull = labelPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel, tree)
         spLabel +=1
     return pntCloudFull, spLabel
 
@@ -41,10 +43,11 @@ def createRandomSphereCoverSetFixedNum(pntCloud,superPointNum=20, pointsInSP=10,
     prevCenterPntList = []
     spLabel = 0
     checkLoop = 0
+    tree = KDTree(pntCloud)
     while spLabel < superPointNum:
         centerPnt = chooseRandMinCoveredPnt(pntCloudFull,prevCenterPntList)
         prevCenterPntList.append(centerPnt) #to not select the same point twice
-        pntCloudFull, hasChanged = labelNumPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel, pointsInSP)
+        pntCloudFull, hasChanged = labelNumPointsInRad(centerPnt, coverSphereRad, pntCloudFull, spLabel, pointsInSP, tree)
         if hasChanged:
             spLabel += 1
             checkLoop = 0
@@ -89,33 +92,35 @@ def chooseRandMinCoveredPnt(pntCloud,prevCenterPntList):
 
     return newCoverPoint
 
-def labelPointsInRad(centerPnt, coverSphereRad, pntCloud, labelNum):
+def labelPointsInRad(centerPnt, coverSphereRad, pntCloud, labelNum, tree):
     # Label Points in radius as uniform Super Point
     # INPUT: centerPnt (x,y,z), coverSphereRad is scalar, pntCloud is a list of point tuples Nx4, labelNum - scalar (int) Superpoint label
     # OUTPUT: list of points within radius (n2<=N)  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn2,yn2,zn2,[l1,..lk])]
-    for pnt in pntCloud:
-        dist = math.sqrt((pnt[0]-centerPnt[0])**2 + (pnt[1]-centerPnt[1])**2 + (pnt[2]-centerPnt[2])**2)
-        if dist <= coverSphereRad:
-            pnt[3].append(labelNum)
+    centerPnt = list(centerPnt[0:3])
+    pointsInRad = tree.query_ball_point(centerPnt, coverSphereRad)
+    for idx in pointsInRad:
+        pnt = pntCloud[idx]
+        pnt[3].append(labelNum)
     return pntCloud
 
-def labelNumPointsInRad(centerPnt, coverSphereRad, originPntCloud, labelNum, numLabel):
+def labelNumPointsInRad(centerPnt, coverSphereRad, pntCloud, labelNum, numLabel, tree):
     # Label Points in radius as uniform Super Point
     # INPUT: centerPnt (x,y,z), coverSphereRad is scalar, pntCloud is a list of point tuples Nx4, labelNum - scalar (int) Superpoint label
     # OUTPUT: list of points within radius (n2<=N)  [(x1,y1,z1,[l1,..lk]),(x2,y2,z2,[l1,..lk]),...(xn2,yn2,zn2,[l1,..lk])]
-    pntCloud = copy.deepcopy(originPntCloud)
-    numPointsInSP = 0
-    random.shuffle(pntCloud)
-    for pnt in pntCloud:
-        dist = math.sqrt((pnt[0]-centerPnt[0])**2 + (pnt[1]-centerPnt[1])**2 + (pnt[2]-centerPnt[2])**2)
-        if numPointsInSP < numLabel:
-            if dist <= coverSphereRad:
-                pnt[3].append(labelNum)
-                numPointsInSP +=1
-    hasChanged = True
-    if numPointsInSP < numLabel:
+    centerPnt = list(centerPnt[0:3])
+    pointsInRad = tree.query_ball_point(centerPnt, coverSphereRad)
+    if len(pointsInRad) < numLabel:
         print('Error: Raise Radius - Not enough points ('+str(numPointsInSP)+') to meet numLabel requirement of '+str(numLabel))
-        return originPntCloud, False
+        return pntCloud, False
+    random.shuffle(pointsInRad)
+    numPointsInSP = 0
+    for idx in pointsInRad:
+        if numPointsInSP >= numLabel:
+            break
+        pnt = pntCloud[idx]
+        pnt[3].append(labelNum)
+        numPointsInSP +=1
+    hasChanged = True
     return pntCloud, hasChanged
 
 def getCoveragePercent(pntCloud):
@@ -160,7 +165,7 @@ def createRandomCloud(n = 10000):
         pntX = random.randrange(0, 100)
         pntY = random.randrange(0, 100)
         pntZ = random.randrange(0, 100)
-        pntCloud.append((pntX, pntY, pntZ))
+        pntCloud.append([pntX, pntY, pntZ])
     return pntCloud
 
 def runExample():
